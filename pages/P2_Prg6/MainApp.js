@@ -12,6 +12,7 @@ import HomeScreen from "./HomeScreen";
 import HistoryScreen from "./HistoryScreen";
 import DetailScreen from "./DetailScreen";
 import AboutScreen from "./AboutScreen";
+import LocationScreen from "./LocationScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -20,6 +21,11 @@ const HomeTabIcon = ({ color }) => (
   <MaterialIcons name="home" size={24} color={color} />
 );
 HomeTabIcon.propTypes = { color: PropTypes.string.isRequired };
+
+const LocationTabIcon = ({ color }) => (
+  <MaterialIcons name="location-on" size={24} color={color} />
+);
+LocationTabIcon.propTypes = { color: PropTypes.string.isRequired };
 
 const HistoryTabIcon = ({ color }) => (
   <MaterialIcons name="history" size={24} color={color} />
@@ -30,6 +36,7 @@ const ProfileTabIcon = ({ color }) => (
   <MaterialIcons name="person" size={24} color={color} />
 );
 ProfileTabIcon.propTypes = { color: PropTypes.string.isRequired };
+
 function HistoryStack() {
   return (
     <Stack.Navigator>
@@ -58,6 +65,15 @@ function MainTabs() {
         options={{
           tabBarLabel: "Beranda",
           tabBarIcon: HomeTabIcon,
+        }}
+      />
+
+      <Tab.Screen
+        name="LocationTab"
+        component={LocationScreen}
+        options={{
+          tabBarLabel: "Lokasi",
+          tabBarIcon: LocationTabIcon,
         }}
       />
 
