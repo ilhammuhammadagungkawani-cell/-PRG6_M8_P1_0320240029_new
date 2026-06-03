@@ -16,6 +16,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import PropTypes from "prop-types";
 import { AuthContext } from "./AuthContext";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import * as Location from "expo-location";
 
 const HomeScreen = ({ navigation }) => {
   const { userData, logout } = useContext(AuthContext);
@@ -28,9 +29,14 @@ const HomeScreen = ({ navigation }) => {
   const [isAlertShowing, setIsAlertShowing] = useState(false);
   const noteInputRef = useRef(null);
   const [permission, requestPermission] = useCameraPermissions();
+  const [locationStatus, setLocationStatus] = useState("checking");
+  const [distance, setDistance] = useState(0);
 
   const BASE_URL = "http://10.1.13.68:8080/api/presensi";
+  const KAMPUS_LAT = -6.346000;
+const KAMPUS_LON = 107.149000;
 
+const MAKSIMAL_JARAK_METER = 50;
   const nimUser = userData?.nim_mhs || userData?.mhsNim || "0320240029";
   const namaUser =
     userData?.nama ||
@@ -42,12 +48,67 @@ const HomeScreen = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString("id-ID"));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const timer = setInterval(() => {
+    setCurrentTime(new Date().toLocaleTimeString("id-ID"));
+  }, 1000);
 
+  verifyLocation();
+
+  return () => clearInterval(timer);
+}, []);
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371e3;
+
+  const p1 = (lat1 * Math.PI) / 180;
+  const p2 = (lat2 * Math.PI) / 180;
+
+  const deltaP = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaL = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(deltaP / 2) * Math.sin(deltaP / 2) +
+    Math.cos(p1) *
+      Math.cos(p2) *
+      Math.sin(deltaL / 2) *
+      Math.sin(deltaL / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+};
+
+const verifyLocation = async () => {
+  try {
+    const { status } =
+      await Location.requestForegroundPermissionsAsync();
+
+    if (status !== "granted") {
+      setLocationStatus("error");
+      return;
+    }
+
+    const currentLocation =
+      await Location.getCurrentPositionAsync({});
+
+    const jarak = calculateDistance(
+      currentLocation.coords.latitude,
+      currentLocation.coords.longitude,
+      KAMPUS_LAT,
+      KAMPUS_LON
+    );
+
+    setDistance(Math.round(jarak));
+
+    if (jarak <= MAKSIMAL_JARAK_METER) {
+      setLocationStatus("valid");
+    } else {
+      setLocationStatus("invalid");
+    }
+  } catch (error) {
+    console.error(error);
+    setLocationStatus("error");
+  }
+};
   const handleCheckIn = async () => {
     if (isCheckedIn) return Alert.alert("Perhatian", "Anda sudah Check In.");
 
@@ -107,21 +168,29 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  const handleOpenScanner = async () => {
-    if (!permission?.granted) {
-      const result = await requestPermission();
-      if (!result.granted) {
-        Alert.alert(
-          "Izin Ditolak",
-          "Aplikasi butuh akses kamera untuk memindai QR Code."
-        );
-        return;
-      }
-    }
+ const handleOpenScanner = async () => {
+  if (locationStatus !== "valid") {
+    Alert.alert(
+      "Akses Ditolak",
+      `Anda berada ${distance} meter dari area kampus`
+    );
+    return;
+  }
 
-    setIsScanning(true);
-    setShowScanner(true);
-  };
+  if (!permission?.granted) {
+    const result = await requestPermission();
+    if (!result.granted) {
+      Alert.alert(
+        "Izin Ditolak",
+        "Aplikasi butuh akses kamera untuk memindai QR Code."
+      );
+      return;
+    }
+  }
+
+  setIsScanning(true);
+  setShowScanner(true);
+};
 
   const handleBarCodeScanned = ({ data }) => {
     if (!isScanning) return;
@@ -224,6 +293,29 @@ const HomeScreen = ({ navigation }) => {
       ]);
     }
   };
+  if (locationStatus === "checking") {
+  return (
+    <SafeAreaView style={styles.centerContainer}>
+      <ActivityIndicator size="large" color="#1565C0" />
+      <Text style={styles.loadingText}>Memverifikasi Lokasi Anda...</Text>
+    </SafeAreaView>
+  );
+}
+
+if (locationStatus === "invalid") {
+  return (
+    <SafeAreaView style={styles.centerContainer}>
+      <MaterialIcons name="block" size={72} color="#D32F2F" />
+      <Text style={styles.errorTitle}>Akses Ditolak</Text>
+      <Text style={styles.errorSubtitle}>
+        Anda berada {distance} meter dari area kampus.
+      </Text>
+      <TouchableOpacity style={styles.retryButton} onPress={verifyLocation}>
+        <Text style={styles.retryButtonText}>Cek Ulang Lokasi</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
+  );
+}
 
   return (
     <SafeAreaView style={styles.container}>
@@ -411,6 +503,47 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#1565C0",
   },
+  centerContainer: {
+  flex: 1,
+  backgroundColor: "#F0F4FF",
+  justifyContent: "center",
+  alignItems: "center",
+  padding: 24,
+},
+
+loadingText: {
+  marginTop: 16,
+  fontSize: 16,
+  fontWeight: "bold",
+  color: "#1565C0",
+},
+
+errorTitle: {
+  fontSize: 24,
+  fontWeight: "bold",
+  color: "#D32F2F",
+  marginTop: 16,
+},
+
+errorSubtitle: {
+  fontSize: 15,
+  color: "#444",
+  textAlign: "center",
+  marginTop: 10,
+  marginBottom: 20,
+},
+
+retryButton: {
+  backgroundColor: "#1565C0",
+  paddingVertical: 12,
+  paddingHorizontal: 22,
+  borderRadius: 12,
+},
+
+retryButtonText: {
+  color: "#FFFFFF",
+  fontWeight: "bold",
+},
   scrollContent: {
     flexGrow: 1,
   },

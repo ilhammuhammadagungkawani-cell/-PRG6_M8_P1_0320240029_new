@@ -165,7 +165,43 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#1565C0",
   },
-  content: {
+  centerContainer: {
+  flex: 1,
+  backgroundColor: "#F0F4FF",
+  justifyContent: "center",
+  alignItems: "center",
+  padding: 24,
+},
+loadingText: {
+  marginTop: 16,
+  fontSize: 16,
+  fontWeight: "bold",
+  color: "#1565C0",
+},
+errorTitle: {
+  fontSize: 24,
+  fontWeight: "bold",
+  color: "#D32F2F",
+  marginTop: 16,
+},
+errorSubtitle: {
+  fontSize: 15,
+  color: "#444",
+  textAlign: "center",
+  marginTop: 10,
+  marginBottom: 20,
+},
+retryButton: {
+  backgroundColor: "#1565C0",
+  paddingVertical: 12,
+  paddingHorizontal: 22,
+  borderRadius: 12,
+},
+retryButtonText: {
+  color: "#FFFFFF",
+  fontWeight: "bold",
+},
+    content: {
     flexGrow: 1,
     backgroundColor: "#F0F4FF",
   },
